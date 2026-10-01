@@ -151,8 +151,12 @@ class MangaNinjiaSampler:
         ref_image_list,lineart_image_list=equalize_lists(ref_image_list,lineart_image_list)
         ref_value,lineart_value=None,None
         if xy_data_ref is not None and xy_data_lineart is not None:
-            lineart_value=xy_data_lineart
-            ref_value=xy_data_ref
+            # canvas points are [x, y] in source image pixels; infer expects [row, col] on its 512x512 point grid
+            def to_grid(points, img):
+                h, w = img.shape[1:3]
+                return [[min(int(y * 512 / h), 511), min(int(x * 512 / w), 511)] for x, y in points]
+            lineart_value=to_grid(xy_data_lineart, lineart_image)
+            ref_value=to_grid(xy_data_ref, image)
             if len (lineart_value)!=len (ref_value):
                 min_length = min(len(lineart_value), len(ref_value))
                 lineart_value = lineart_value[:min_length]

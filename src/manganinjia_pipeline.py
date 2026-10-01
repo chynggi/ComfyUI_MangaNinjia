@@ -97,8 +97,8 @@ class MangaNinjiaPipeline(DiffusionPipeline):
         device = self.device
         self.ref1_latents=ref1_latents
         input_size = raw2.size
-        point_ref=point_ref.float().to(device)
-        point_main=point_main.float().to(device)
+        point_ref=point_ref.to(device, dtype=self.dtype)
+        point_main=point_main.to(device, dtype=self.dtype)
         # def img2embeds(img, image_enc):
         #     clip_image = self.clip_image_processor.preprocess(
         #         img, return_tensors="pt"
@@ -377,7 +377,7 @@ class MangaNinjiaPipeline(DiffusionPipeline):
         else:
             gray_image_np = np.array(edge2_src)
             gray_image_np = gray_image_np / 255.0
-            edge2 = torch.from_numpy(gray_image_np.astype(np.float32)).unsqueeze(0).unsqueeze(0).cuda()
+            edge2 = torch.from_numpy(gray_image_np).unsqueeze(0).unsqueeze(0).to(device, dtype=self.dtype)
         edge2[edge2<=0.24]=0
         edge2_black = edge2.repeat(1, 3, 1, 1) * 2 - 1.
         to_save_dict['edge2_black']=edge2_black

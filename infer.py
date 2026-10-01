@@ -13,10 +13,10 @@ from .src.manganinjia_pipeline import MangaNinjiaPipeline
 from .src.image_util import resize_max_res,chw2hwc
 from diffusers import (
     ControlNetModel,
-    StableDiffusionPipeline,
     DDIMScheduler,
     AutoencoderKL,
 )
+from diffusers import UNet2DConditionModel as SDUNet2DConditionModel
 from .src.models.mutual_self_attention_multi_scale import ReferenceAttentionControl
 from .src.models.unet_2d_condition import UNet2DConditionModel
 from .src.models.refunet_2d_condition import RefUNet2DConditionModel
@@ -30,24 +30,14 @@ def nijia_loader(MangaNinjia_weigths_path,repo,controlnet_model_name_or_path,ima
                  ckpt_path,original_config_file,sd_config):
     # -------------------- Model --------------------
     preprocessor = BatchLineartDetector(MangaNinjia_weigths_path)# 直接使用模型路径，cn的预处理器
-    preprocessor.to(device,dtype=torch.float32) 
+    preprocessor.to(device,dtype=torch.float16) 
     in_channels_reference_unet = 4
     in_channels_denoising_unet = 4
     in_channels_controlnet = 4
 
-    try:
-        pipe = StableDiffusionPipeline.from_single_file(
-            ckpt_path,config=sd_config, original_config=original_config_file)
-    except:
-        pipe = StableDiffusionPipeline.from_single_file(
-            ckpt_path, config=sd_config,original_config_file=original_config_file)
-
-
     noise_scheduler = DDIMScheduler.from_pretrained(repo,subfolder='scheduler')
-    vae=pipe.vae
-
-
-    Unet=pipe.unet
+    vae = AutoencoderKL.from_single_file(ckpt_path, config=sd_config, subfolder="vae")
+    Unet = SDUNet2DConditionModel.from_single_file(ckpt_path, config=sd_config, subfolder="unet")
 
     denoising_unet = UNet2DConditionModel.from_config(
         repo,subfolder="unet",
@@ -100,7 +90,7 @@ def nijia_loader(MangaNinjia_weigths_path,repo,controlnet_model_name_or_path,ima
     #     low_cpu_mem_usage=False,
     #     ignore_mismatched_sizes=True
     # )
-    del cn_dict,Unet,pipe
+    del cn_dict,Unet
     gc.collect()
     torch.cuda.empty_cache()
 
@@ -161,8 +151,8 @@ def infer_main (model,ref_image_list,lineart_image_list,ref_value,lineart_value,
     controlnet_uncond_encoder_hidden_states = prompt2embeds("", refnet_tokenizer, refnet_text_encoder,device,dtype)
     refnet_uncond_encoder_hidden_states= prompt2embeds("", refnet_tokenizer, refnet_text_encoder,device,dtype)
 
-    controlnet_encoder_hidden_states=img2embeds(ref_image_list[0], refnet_image_encoder,device) #TO DO
-    refnet_encoder_hidden_states=img2embeds(ref_image_list[0], refnet_image_encoder,device) # TO DO more image
+    controlnet_encoder_hidden_states=img2embeds(ref_image_list[0], refnet_image_encoder,device).to(dtype) #TO DO
+    refnet_encoder_hidden_states=img2embeds(ref_image_list[0], refnet_image_encoder,device).to(dtype) # TO DO more image
 
     refnet_image_encoder.to("cpu")
     refnet_text_encoder.to("cpu")
@@ -182,7 +172,7 @@ def infer_main (model,ref_image_list,lineart_image_list,ref_value,lineart_value,
         seed = int(time.time())
     generator = torch.cuda.manual_seed(seed)
 
-    ref1_latents=encode_RGB(vae,ref_image_list[0],processing_res, generator,device,rgb_latent_scale_factor,torch.float32)
+    ref1_latents=encode_RGB(vae,ref_image_list[0],processing_res, generator,device,rgb_latent_scale_factor,torch.float32).to(dtype)
 
     # -------------------- Device --------------------
     if torch.cuda.is_available():
@@ -191,7 +181,7 @@ def infer_main (model,ref_image_list,lineart_image_list,ref_value,lineart_value,
         device = torch.device("cpu")
         logging.warning("CUDA is not available. Running on CPU will be slow.")
     logging.info(f"device = {device}")
-    pipe.to(device=device)
+    pipe.to(device=device, dtype=dtype)
     
 
     # -------------------- Inference and saving --------------------
@@ -254,7 +244,7 @@ def infer_main (model,ref_image_list,lineart_image_list,ref_value,lineart_value,
     vae.to(device)
     out_list=[]
     for i in image_list:
-        img=latent2pil(vae,i,rgb_latent_scale_factor)
+        img=latent2pil(vae,i.to(vae.dtype),rgb_latent_scale_factor)
         out_list.append(img)
     pipe.to("cpu") # move pipe to cpu 
     return out_list,lineart_list
