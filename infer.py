@@ -142,7 +142,6 @@ def nijia_loader(MangaNinjia_weigths_path,repo,controlnet_model_name_or_path,ima
         )
     
     #pipe = pipe.to(torch.device(device))
-    pipe.enable_xformers_memory_efficient_attention()
     return pipe,preprocessor,refnet_tokenizer,refnet_text_encoder,refnet_image_encoder,vae
 
 def infer_main (model,ref_image_list,lineart_image_list,ref_value,lineart_value,denoise_steps,seed,is_lineart,guidance_scale_ref,guidance_scale_point,device):
