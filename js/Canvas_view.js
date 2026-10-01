@@ -151,6 +151,13 @@ async function createCanvasWidget(node, widget, app) {
         img.src = URL.createObjectURL(file);
     };
 
+    // show the existing input file once the workflow has set the widget value
+    setTimeout(async () => {
+        if (canvas.layers.length || !widget.value) return;
+        const resp = await api.fetchApi(`/view?filename=${encodeURIComponent(widget.value)}&type=input&rand=${Math.random()}`);
+        if (resp.ok) handleImageInput(await resp.blob());
+    }, 0);
+
    
    
     // 修改控制面板，使其高度自适应
@@ -332,7 +339,8 @@ async function createCanvasWidget(node, widget, app) {
 
     // 在执行开始时保存数据
     api.addEventListener("execution_start", async () => {
-        // 保存画布
+        // an empty canvas would overwrite the input file with a blank image
+        if (!canvas.layers.length) return;
         await canvas.saveToServer(widget.value);
         
         // 保存当前节点的输入数据

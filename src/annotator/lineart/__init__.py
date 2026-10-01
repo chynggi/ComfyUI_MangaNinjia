@@ -97,11 +97,7 @@ class LineartDetector:
         self.model_coarse = self.load_model('sk_model2.pth')
 
     def load_model(self, name):
-        remote_model_path = "https://huggingface.co/lllyasviel/Annotators/resolve/main/" + name
         modelpath = os.path.join(self.annotator_ckpts_path, name)
-        if not os.path.exists(modelpath):
-            from basicsr.utils.download_util import load_file_from_url
-            load_file_from_url(remote_model_path, model_dir=self.annotator_ckpts_path)
         model = Generator(3, 1, 3)
         model.load_state_dict(torch.load(modelpath, map_location=torch.device('cpu')))
         model.eval()
@@ -129,11 +125,7 @@ class BatchLineartDetector:
         self.model = self.load_model('sk_model.pth')
 
     def load_model(self, name):
-        remote_model_path = "https://huggingface.co/lllyasviel/Annotators/resolve/main/" + name
         modelpath = os.path.join(self.annotator_ckpts_path, name)
-        if not os.path.exists(modelpath):
-            from basicsr.utils.download_util import load_file_from_url
-            load_file_from_url(remote_model_path, model_dir=self.annotator_ckpts_path)
         model = Generator(3, 1, 3)
         model.load_state_dict(torch.load(modelpath, map_location=torch.device('cpu')))
         model.eval()
