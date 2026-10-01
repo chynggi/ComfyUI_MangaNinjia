@@ -204,19 +204,12 @@ export class Canvas {
 
             if (e.button === 0) { // 左键
                 if (this.selectedLayer) {
-                    const layer = this.selectedLayer;
-                    const originalX = (x - layer.x) / (layer.width / layer.image.width);
-                    const originalY = (y - layer.y) / (layer.height / layer.image.height);
-        
-                    // 将原始坐标添加到列表中
-                    // this.clickedPoints.push({ x: originalX, y: originalY });
-                    // 将原始坐标添加到列表中，并附带计数
-                    this.clickedPoints.push({ 
-                        x: originalX, 
-                        y: originalY, 
+                    // canvas coordinates: the saved image is the whole canvas, not the layer
+                    this.clickedPoints.push({
+                        x: x,
+                        y: y,
                         number: squareCounter // 添加计数
                     });
-                    console.log("Clicked point added:", { x: originalX, y: originalY });
                 }
         
                 drawRandomSquare(x, y);
@@ -225,6 +218,8 @@ export class Canvas {
             } else if (e.button === 1) { // 中键
                 clearAllSquares();
             }
+            // send now: execution_start fires after the server already read the points
+            this.sendClickedPointsToServer(this.widget.value, this.getClickedPoints());
         };
 
         // 添加鼠标点击事件监听器

@@ -242,6 +242,7 @@ class MarkImageNode:
         m = hashlib.sha256()
         with open(image_path, 'rb') as f:
             m.update(f.read())
+        m.update(repr(node_instances.get(os.path.basename(image_path))).encode())
         return m.digest().hex()
 
 def process_json(json_data):
